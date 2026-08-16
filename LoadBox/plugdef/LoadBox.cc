@@ -23,17 +23,22 @@
 #include "engine.h"
 #include "ParallelThread.h"
 #include "Parameter.h"
+#ifndef HEADLESS
 #define CLAPPLUG
 #include "LoadBox.c"
+#endif
 
 class LoadBox
 {
 public:
+  #ifndef HEADLESS
     Widget_t*               TopWin;
+  #endif
     Params                  param;
 
     LoadBox() : engine(), param() {
         workToDo.store(false, std::memory_order_release);
+    #ifndef HEADLESS
         ui = (X11_UI*)malloc(sizeof(X11_UI));
         ui->private_ptr = NULL;
         ui->need_resize = 1;
@@ -45,15 +50,20 @@ public:
         title = "IR Loader";
         firstLoop = true;
         p = 0;
+    #endif
         registerParameters();
+    #ifndef HEADLESS
         for(int i = 0;i<CONTROLS;i++)
             ui->widget[i] = NULL;
+    #endif
     }
 
     ~LoadBox() {
+    #ifndef HEADLESS
         fetch.stop();
         free(ui->private_ptr);
         free(ui);
+    #endif
     }
 
     void registerParameters() {
@@ -68,6 +78,7 @@ public:
         param.registerParam("Master",         "IR",    -20,20,0,0.1, (void*)&engine.MasterOutGain,  false, Is_FLOAT);
     }
 
+    #ifndef HEADLESS
     void startGui(Window window) {
         main_init(&ui->main);
         if (ui->main.hdpi > 1.6) ui->main.hdpi = 1.6;
@@ -195,6 +206,11 @@ public:
         return &ui->main;
     }
 
+    void enableEngine(int on) {
+        adj_set_value(ui->widget[9]->adj, static_cast<float>(on));
+    }
+  #endif
+
     irloader::Engine *getEngine() {
         return &engine;
     }
@@ -206,10 +222,6 @@ public:
         param.controllerChanged.store(true, std::memory_order_release);
     }
 
-    void enableEngine(int on) {
-        adj_set_value(ui->widget[9]->adj, static_cast<float>(on));
-    }
-
     inline void process(uint32_t n_samples, float* output, float* output1) {
         engine.process(n_samples, output, output1);
     }
@@ -218,6 +230,7 @@ public:
         (*latency) = static_cast<uint32_t>(engine.latency);
     }
 
+#ifndef HEADLESS
     void getEngineValues() {
         adj_set_value(ui->widget[0]->adj, engine.IRoutputGain);
         adj_set_value(ui->widget[1]->adj, engine.IRoutputGain1);
@@ -228,6 +241,7 @@ public:
         adj_set_value(ui->widget[8]->adj, static_cast<float>(engine.IRmode));
         adj_set_value(ui->widget[9]->adj, static_cast<float>(engine.bypass));
     }
+#endif
 
     // send value changes from GUI to the engine
     void sendValueChanged(int port, float value) {
@@ -297,6 +311,7 @@ public:
         param.controllerChanged.store(true, std::memory_order_release);
     }
 
+#ifndef HEADLESS
     // send a file name from GUI to the engine
     void sendFileName(ModelPicker* m) {
         if ((strcmp(m->filename, "None") == 0) || ends_with(m->filename, "nam") ||
@@ -318,6 +333,7 @@ public:
             workToDo.store(true, std::memory_order_release);
         } else return;
     }
+#endif
 
     float check_stod (const std::string& str) {
         char* point = localeconv()->decimal_point;
@@ -401,21 +417,26 @@ public:
         (*state) = buffer.str();
     }
 
+#ifndef HEADLESS
     void cleanup() {
         plugin_cleanup(ui);
         free(ui->private_ptr);
         ui->private_ptr = NULL;
     }
+#endif
 
 private:
+  #ifndef HEADLESS
     ParallelThread          fetch;
     X11_UI*                 ui;
-    irloader::Engine        engine;
     Window                  p;
-    std::atomic<bool>       workToDo;
     std::string             title;
     bool                    firstLoop;
+  #endif
+    irloader::Engine        engine;
+    std::atomic<bool>       workToDo;
 
+  #ifndef HEADLESS
     // rebuild file menu when needed
     void rebuild_file_menu(ModelPicker *m) {
         xevfunc store = m->fbutton->func.value_changed_callback;
@@ -460,6 +481,7 @@ private:
             m->filename = strdup("None");
         }
     }
+  #endif
 
 };
 
@@ -468,6 +490,7 @@ private:
  ** connect value change messages from the GUI (C) to the engine (C++)
  */
 
+#ifndef HEADLESS
 // send value changes from GUI to the engine
 void sendValueChanged(X11_UI *ui, int port, float value) {
     LoadBox *r = (LoadBox*)ui->win->private_struct;
@@ -479,3 +502,4 @@ void sendFileName(X11_UI *ui, ModelPicker* m){
     LoadBox *r = (LoadBox*)ui->win->private_struct;
     r->sendFileName(m);
 }
+#endif

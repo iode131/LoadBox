@@ -1,0 +1,9 @@
+Performance timings for all processors in percentages of audio buffer (100% = 1333.33us)
+
+                        average(%)      minimum(%)      maximum(%)      
+Track: main
+        LoadBoxVST3Headless0.0388349       0.02475         0.84825         
+        passthrough     0.00324369      0.0015          0.1185          
+        Track total     0.0512172       0.033           1.1085          
+
+Engine total            0.0652159       0.04125         1.55775         

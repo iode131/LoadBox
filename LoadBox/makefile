@@ -147,6 +147,7 @@ endif
 	NAME = LoadBox
 	space := $(subst ,, )
 	VST3_NAME := LoadBoxVST3
+	VST3HL_NAME := LoadBoxVST3Headless
 	LIB_DIR := ../libxputty/libxputty/
 	HEADER_DIR := $(LIB_DIR)include/
 	UI_LIB:= $(LIB_DIR)libxputty.$(STATIC_LIB_EXT)
@@ -192,6 +193,7 @@ endif
 	VST3_SOURCES := $(VST3_DIR)LoadBoxVST3.cpp
 	ARCH = `echo $(UNAME_S) | tr A-Z a-z`
 	VST3_BUNDLE := $(VST3_NAME).vst3/Contents/$(UNAME_M)-$(ARCH)/
+	VST3HL_BUNDLE := $(VST3HL_NAME).vst3/Contents/$(UNAME_M)-$(ARCH)/
 
 	CONV_DIR := ../FFTConvolver/
 	CONV_SOURCES :=  $(wildcard $(CONV_DIR)*.cpp)
@@ -204,7 +206,7 @@ endif
 	RESAMP_OBJ := $(patsubst %.cc,%.o,$(RESAMP_SOURCES))
 	RESAMP_LIB := libzita-resampler.$(STATIC_LIB_EXT)
 
-	DEPS = $(NEURALAUDIO_OBJ:%.o=%.d) $(CONV_OBJ:%.o=%.d) $(RESAMP_OBJ:%.o=%.d) LoadBox_vst2.d LoadBox_vst3.d LoadBox_clap.d
+	DEPS = $(NEURALAUDIO_OBJ:%.o=%.d) $(CONV_OBJ:%.o=%.d) $(RESAMP_OBJ:%.o=%.d) LoadBox_vst2.d LoadBox_vst3.d LoadBox_vst3hl.d LoadBox_clap.d
 
 ifeq ($(PAWPAW_BUILD),1)
 	CXXFLAGS += -DPAWPAW=1
@@ -249,6 +251,7 @@ ifeq ($(TARGET), Linux)
 
 else ifeq ($(TARGET), Windows)
 	VST3_BUNDLE := $(VST3_NAME).vst3/Contents/$(UNAME_M)-win/
+	VST3HL_BUNDLE := $(VST3HL_NAME).vst3/Contents/$(UNAME_M)-win/
 
 	CXXFLAGS += -D_FORTIFY_SOURCE=2 -I. -fPIC -DPIC -Wall -funroll-loops \
 	-ffast-math -fomit-frame-pointer -fstrength-reduce -Wno-deprecated-declarations \
@@ -306,6 +309,17 @@ else
 endif
 	@$(B_ECHO) "=================== DONE =======================$(reset)"
 
+vst3headless: $(VST3HL_NAME)
+	@$(B_ECHO) "Creatn $(VST3HL_BUNDLE) $(reset)"
+	$(QUIET)mkdir -p ../bin/
+	$(QUIET)mkdir -p ../bin/$(VST3HL_BUNDLE)
+ifeq ($(TARGET), Windows)
+	$(QUIET)cp ./$(VST3HL_NAME).$(LIB_EXT) ../bin/$(VST3HL_BUNDLE)/$(VST3HL_NAME).vst3
+else
+	$(QUIET)cp ./$(VST3HL_NAME).$(LIB_EXT) ../bin/$(VST3HL_BUNDLE)
+endif
+	@$(B_ECHO) "=================== DONE =======================$(reset)"
+
 clap: $(NAME).clap
 	$(QUIET)mkdir -p ../bin/
 	$(QUIET)cp ./$(NAME).clap ../bin/
@@ -354,6 +368,14 @@ $(VST3_NAME): $(VST3_SOURCES) ./plugdef/PluginClient.cc ./plugdef/LoadBox.cc $(N
 	-L. -Wl,--whole-archive $(NEURALAUDIO_LIB) -Wl,--no-whole-archive -L. $(CONV_LIB) -L. $(RESAMP_LIB) $(GUI_LDFLAGS) $(LDFLAGS) -o $(VST3_NAME).$(LIB_EXT)
 ifeq (,$(filter yes,$(DEBUG)))
 	$(QUIET)$(STRIP) -s -x -X -R .comment -R .note.ABI-tag $(VST3_NAME).$(LIB_EXT)
+endif
+
+$(VST3HL_NAME): $(VST3_SOURCES) ./plugdef/PluginClient.cc ./plugdef/LoadBox.cc $(NEURALAUDIO_LIB) $(CONV_LIB) $(RESAMP_LIB) $(MODEL_LOADER)
+	@$(B_ECHO) "Compiling $(VST3HL_NAME).$(LIB_EXT) $(reset)"
+	$(QUIET)$(CXX) $(CXXFLAGS) -DHEADLESS=1 -MMD -MF $(NAME)_vst3.d -Wno-multichar $(NEURALAUDIO_INCLUDES) $(ENGINE_INCLUDE) $(MODEL_LOADER) $(VST3_INCLUDE) $(VST3_SOURCES)  \
+	-L. -Wl,--whole-archive $(NEURALAUDIO_LIB) -Wl,--no-whole-archive -L. $(CONV_LIB) -L. $(RESAMP_LIB) $(LDFLAGS) -o $(VST3HL_NAME).$(LIB_EXT)
+ifeq (,$(filter yes,$(DEBUG)))
+	$(QUIET)$(STRIP) -s -x -X -R .comment -R .note.ABI-tag $(VST3HL_NAME).$(LIB_EXT)
 endif
 
 $(NAME).clap: $(CLAP_SOURCES) ./plugdef/PluginClient.cc ./plugdef/LoadBox.cc $(NEURALAUDIO_LIB) $(CONV_LIB) $(RESAMP_LIB) $(MODEL_LOADER)

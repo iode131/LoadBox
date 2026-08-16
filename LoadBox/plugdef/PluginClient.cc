@@ -60,6 +60,7 @@ public:
     void readState(const std::string& state) override { irLoader.readState(state); }
     void saveState(std::string* state) override { irLoader.saveState(state); }
 
+#ifndef HEADLESS
     void startGui() override { irLoader.startGui(); }
 
     void startGui(WindowHandle parent) override {
@@ -94,6 +95,7 @@ public:
         irLoader.getMain()->hdpi = scale;
         return true;
     }
+#endif
 
 private:
     LoadBox irLoader;

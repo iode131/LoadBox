@@ -237,6 +237,7 @@ struct wrap_processor : v3_audio_processor_cpp {
  ** v3_plugin_view
  */
 
+#ifndef HEADLESS
 struct wrap_view : v3_plugin_view_cpp {
     std::atomic_int refcounter{1};
     IPluginClient* const plugin;
@@ -338,6 +339,7 @@ struct wrap_view : v3_plugin_view_cpp {
     static v3_result V3_API check_size_constraint(void*, v3_view_rect*) { return V3_OK; }
 
 };
+#endif // HEADLESS
 
 /****************************************************************
  ** v3_edit_controller
@@ -347,7 +349,9 @@ struct wrap_controller : v3_edit_controller_cpp {
     std::atomic_int refcounter{1};
     IPluginClient* const plugin;
     const int variantIndex;
+#ifndef HEADLESS
     wrap_view* viewPtr = nullptr;
+#endif
 
     explicit wrap_controller(IPluginClient* p, int variant) : plugin(p), variantIndex(variant) {
         query_interface = query_interface_controller;
@@ -372,7 +376,11 @@ struct wrap_controller : v3_edit_controller_cpp {
         ctrl.create_view                    = create_view;
     }
 
+#ifndef HEADLESS
     ~wrap_controller() { delete viewPtr; }
+#else
+    ~wrap_controller() {}
+#endif
 
     static v3_result V3_API query_interface_controller(void* self, const v3_tuid iid, void** iface) {
         wrap_controller* const c = *static_cast<wrap_controller**>(self);
@@ -515,6 +523,7 @@ struct wrap_controller : v3_edit_controller_cpp {
     static v3_result V3_API set_component_handler(void*, v3_component_handler**) { return V3_OK; }
 
     static v3_plugin_view** V3_API create_view(void* self, const char*) {
+#ifndef HEADLESS
         wrap_controller* const c = *static_cast<wrap_controller**>(self);
         if (c->viewPtr == nullptr)
             c->viewPtr = new wrap_view(c->plugin);
@@ -522,6 +531,9 @@ struct wrap_controller : v3_edit_controller_cpp {
             ++c->viewPtr->refcounter;
 
         return reinterpret_cast<v3_plugin_view**>(&c->viewPtr);
+#else
+        return nullptr;
+#endif
     }
 };
 

@@ -1,0 +1,39 @@
+{
+  "host_config": {
+    "samplerate": 48000
+  },
+  "tracks": [
+    {
+      "name": "main",
+      "channels": 2,
+      "inputs": [
+        {
+          "engine_bus": 0,
+          "track_bus": 0
+        }
+      ],
+      "outputs": [
+        {
+          "engine_bus": 0,
+          "track_bus": 0
+        }
+      ],
+      "plugins": [
+        {
+          "path": "/home/max/Work/LoadBox/bin/LoadBoxVST3Headless.vst3",
+          "name": "LoadBoxVST3Headless",
+          "type": "vst3x",
+          "uid": "LoadBox"
+        },
+        {
+          "uid": "sushi.testing.passthrough",
+          "name": "passthrough",
+          "type": "internal"
+        }
+      ]
+    }
+  ],
+  "midi": {
+    "cc_mappings": []
+  }
+}

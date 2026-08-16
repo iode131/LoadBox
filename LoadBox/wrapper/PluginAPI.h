@@ -125,6 +125,7 @@ public:
     virtual void readState(const std::string& state) = 0;
     virtual void saveState(std::string* state) = 0;
 
+  #ifndef HEADLESS
     // GUI
     // Own top-level window without a host parent (e.g. CLAP "floating").
     virtual void startGui() = 0;
@@ -136,6 +137,16 @@ public:
     virtual void setParent(WindowHandle parent) = 0;
     virtual void getGuiSize(int& width, int& height) const = 0;
     virtual bool resizeGui(int width, int height) = 0; // false = not possible
+  #else
+    virtual void startGui() {}
+    virtual void startGui(WindowHandle parent) {}
+    virtual void showGui() {}
+    virtual void hideGui() {}
+    virtual void quitGui() {}
+    virtual void setParent(WindowHandle parent) {}
+    virtual void getGuiSize(int& width, int& height) const {}
+    virtual bool resizeGui(int width, int height) { return false; }
+  #endif
 
     // Optional HiDPI scaling; defaults to "not supported".
     virtual bool setGuiScale(double /*scale*/) { return false; }
