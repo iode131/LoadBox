@@ -78,6 +78,29 @@ struct PluginDescriptor {
     std::vector<PluginVariantInfo> variants; // at least 1 entry
 };
 
+// String properties: named, string valued controls, for things a float
+// parameter cannot express - a file path, most typically. No plugin format
+// supports these natively (VST3 parameters are normalised doubles), so each
+// wrapper maps them onto whatever its format offers, or ignores them.
+struct StringPropertyInfo {
+    uint32_t    id;         // stable, unique; must not collide with a
+                             // parameter index, since some hosts register
+                             // parameters and properties in one id space
+    const char* name;        // machine readable, e.g. "ir_file_left"
+    const char* label;       // display name, e.g. "IR File Left"
+    bool        readOnly;    // host may read but not write
+};
+
+// Implemented by a wrapper to be told, from a non-realtime thread, that a
+// string property changed value inside the plugin - typically because an
+// asynchronous load finished, succeeded or failed. Lets the wrapper push the
+// confirmed value back to the host.
+class IStringPropertyListener {
+public:
+    virtual ~IStringPropertyListener() = default;
+    virtual void stringPropertyChanged(uint32_t id, const std::string& value) = 0;
+};
+
 // IPluginClient: the interface every plugin implements exactly once,
 // shared by all format wrappers (VST3, VST2, CLAP, ...).
 class IPluginClient {
@@ -124,6 +147,26 @@ public:
     // state
     virtual void readState(const std::string& state) = 0;
     virtual void saveState(std::string* state) = 0;
+
+    // string properties (see StringPropertyInfo above)
+    // All of these are called from a non-realtime thread only, and default to
+    // "this plugin has none", so a plugin that wants nothing to do with them
+    // needs no code at all.
+    virtual int stringPropertyCount() const { return 0; }
+    virtual bool stringPropertyInfo(int /*index*/, StringPropertyInfo& /*out*/) const { return false; }
+
+    // Current value. Copies into 'out' - the caller owns the buffer, so the
+    // plugin never has to keep one alive for the host.
+    virtual bool getStringProperty(uint32_t /*id*/, std::string& /*out*/) const { return false; }
+
+    // Request a new value. Returns false for an unknown id, or for a value the
+    // plugin rejects outright (a malformed path, say). Returning true means
+    // "accepted" - the work it triggers may well be asynchronous, in which case
+    // the listener below reports the outcome.
+    virtual bool setStringProperty(uint32_t /*id*/, const std::string& /*value*/) { return false; }
+
+    // Install (or clear, with nullptr) the sink for plugin side value changes.
+    virtual void setStringPropertyListener(IStringPropertyListener* /*listener*/) {}
 
   #ifndef HEADLESS
     // GUI

@@ -19,6 +19,8 @@
 #include "travesty/audio_processor.h"
 #include "travesty/edit_controller.h"
 
+#include "elk_extensions.h"
+
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
@@ -342,6 +344,139 @@ struct wrap_view : v3_plugin_view_cpp {
 #endif // HEADLESS
 
 /****************************************************************
+ ** elk controller extension - optional string properties
+ **
+ ** VST3 parameters are normalised doubles, so there is no standard way to hand
+ ** a plugin a string. Elk Audio's hosts add one through a private interface,
+ ** discovered by the usual queryInterface handshake; hosts that never heard of
+ ** it simply get V3_NO_INTERFACE from the controller and lose nothing.
+ **
+ ** Every call below arrives on a non-realtime thread.
+ */
+
+struct wrap_elk_controller_ext;
+
+// The notification sink lives in its own object on purpose. Deriving
+// wrap_elk_controller_ext from IStringPropertyListener directly would make it
+// polymorphic, and the ABI would then put a vtable pointer at offset 0 - where
+// the host expects query_interface to be.
+struct wrap_property_listener : IStringPropertyListener {
+    wrap_elk_controller_ext* owner = nullptr;
+    void stringPropertyChanged(uint32_t id, const std::string& value) override;
+};
+
+struct wrap_elk_controller_ext : elk_controller_extension_cpp {
+    std::atomic_int refcounter{1};
+    IPluginClient* const plugin;
+
+    // Handed to the host by get_property_value, which promises a pointer that
+    // stays valid until the call returns.
+    std::string valueBuffer;
+
+    wrap_property_listener listener;
+
+    // The host's end of the notification channel, when it has one. Written by
+    // the host thread in set_component_handler, read by whichever plugin thread
+    // reports a change.
+    std::atomic<elk_component_handler_extension**> handlerExt{nullptr};
+
+    explicit wrap_elk_controller_ext(IPluginClient* p) : plugin(p) {
+        query_interface = query_interface_ext;
+        ref             = ref_ext;
+        unref           = unref_ext;
+
+        ext.get_property_count = get_property_count;
+        ext.get_property_info  = get_property_info;
+        ext.get_property_value = get_property_value;
+        ext.set_property_value = set_property_value;
+
+        listener.owner = this;
+        plugin->setStringPropertyListener(&listener);
+    }
+
+    ~wrap_elk_controller_ext() {
+        plugin->setStringPropertyListener(nullptr);
+    }
+
+    void notifyHost(uint32_t id, const std::string& value) {
+        elk_component_handler_extension** const h = handlerExt.load(std::memory_order_acquire);
+        if (h == nullptr) return;
+        const elk_property_value pv = { value.c_str(), static_cast<int32_t>(value.size()) };
+        v3_cpp_obj(h)->notify_property_value_change(h, static_cast<int32_t>(id), &pv);
+    }
+
+    static v3_result V3_API query_interface_ext(void* self, const v3_tuid iid, void** iface) {
+        wrap_elk_controller_ext* const e = *static_cast<wrap_elk_controller_ext**>(self);
+        if (v3_tuid_match(iid, v3_funknown_iid) ||
+            v3_tuid_match(iid, elk_controller_extension_iid)) {
+            ++e->refcounter;
+            *iface = self;
+
+            return V3_OK;
+        }
+        *iface = nullptr;
+
+        return V3_NO_INTERFACE;
+    }
+
+    static uint32_t V3_API ref_ext(void* self) {
+        return ++(*static_cast<wrap_elk_controller_ext**>(self))->refcounter;
+    }
+
+    static uint32_t V3_API unref_ext(void* self) {
+        return --(*static_cast<wrap_elk_controller_ext**>(self))->refcounter;
+    }
+
+    static int32_t V3_API get_property_count(void* self) {
+
+        return (*static_cast<wrap_elk_controller_ext**>(self))->plugin->stringPropertyCount();
+    }
+
+    static v3_result V3_API get_property_info(void* self, int32_t idx, elk_property_info* info) {
+        wrap_elk_controller_ext* const e = *static_cast<wrap_elk_controller_ext**>(self);
+        if (info == nullptr) return V3_INVALID_ARG;
+        StringPropertyInfo src{};
+        if (!e->plugin->stringPropertyInfo(idx, src)) return V3_INVALID_ARG;
+
+        std::memset(info, 0, sizeof(*info));
+        info->id = static_cast<v3_param_id>(src.id);
+        asciiToUtf16(info->name, src.name, 128);
+        asciiToUtf16(info->label, src.label, 128);
+        info->flags = src.readOnly ? ELK_PROPERTY_IS_READ_ONLY : ELK_PROPERTY_NO_FLAGS;
+
+        return V3_OK;
+    }
+
+    static v3_result V3_API get_property_value(void* self, int32_t id, elk_property_value* value) {
+        wrap_elk_controller_ext* const e = *static_cast<wrap_elk_controller_ext**>(self);
+        if (value == nullptr) return V3_INVALID_ARG;
+        if (!e->plugin->getStringProperty(static_cast<uint32_t>(id), e->valueBuffer))
+            return V3_INVALID_ARG;
+        value->value = e->valueBuffer.c_str();
+        value->length = static_cast<int32_t>(e->valueBuffer.size());
+
+        return V3_OK;
+    }
+
+    static v3_result V3_API set_property_value(void* self, int32_t id, const elk_property_value* value) {
+        wrap_elk_controller_ext* const e = *static_cast<wrap_elk_controller_ext**>(self);
+        if (value == nullptr) return V3_INVALID_ARG;
+        std::string v;
+        if (value->value != nullptr && value->length > 0) {
+            const int32_t len = value->length < ELK_STRING_PROPERTY_DEFAULT_LENGTH
+                                    ? value->length : ELK_STRING_PROPERTY_DEFAULT_LENGTH;
+            v.assign(value->value, static_cast<size_t>(len));
+        }
+
+        return e->plugin->setStringProperty(static_cast<uint32_t>(id), v) ? V3_OK : V3_INVALID_ARG;
+    }
+};
+
+void wrap_property_listener::stringPropertyChanged(uint32_t id, const std::string& value) {
+    if (owner != nullptr) owner->notifyHost(id, value);
+}
+
+/****************************************************************
  ** v3_edit_controller
  */
 
@@ -352,6 +487,9 @@ struct wrap_controller : v3_edit_controller_cpp {
 #ifndef HEADLESS
     wrap_view* viewPtr = nullptr;
 #endif
+    wrap_elk_controller_ext* elkExtPtr = nullptr;
+    v3_component_handler** handler = nullptr;
+    elk_component_handler_extension** handlerExt = nullptr;
 
     explicit wrap_controller(IPluginClient* p, int variant) : plugin(p), variantIndex(variant) {
         query_interface = query_interface_controller;
@@ -376,11 +514,54 @@ struct wrap_controller : v3_edit_controller_cpp {
         ctrl.create_view                    = create_view;
     }
 
+    ~wrap_controller() {
 #ifndef HEADLESS
-    ~wrap_controller() { delete viewPtr; }
-#else
-    ~wrap_controller() {}
+        delete viewPtr;
 #endif
+        // clears the plugin's listener before the plugin itself goes away:
+        // wrap_component deletes the controller first, then the client
+        delete elkExtPtr;
+        dropHandler();
+    }
+
+    // The extension object is created on demand, from whichever comes first -
+    // the host asking the controller for the interface, or the host handing us
+    // a component handler that supports the notification side.
+    wrap_elk_controller_ext* ensureElkExt() {
+        if (elkExtPtr == nullptr && plugin->stringPropertyCount() > 0)
+            elkExtPtr = new wrap_elk_controller_ext(plugin);
+
+        return elkExtPtr;
+    }
+
+    void dropHandler() {
+        if (elkExtPtr != nullptr)
+            elkExtPtr->handlerExt.store(nullptr, std::memory_order_release);
+        if (handlerExt != nullptr) {
+            v3_cpp_obj_unref(handlerExt);
+            handlerExt = nullptr;
+        }
+        if (handler != nullptr) {
+            v3_cpp_obj_unref(handler);
+            handler = nullptr;
+        }
+    }
+
+    void setHandler(v3_component_handler** h) {
+        dropHandler();
+        if (h == nullptr) return;
+
+        handler = h;
+        v3_cpp_obj_ref(handler);
+
+        elk_component_handler_extension** ext = nullptr;
+        if (v3_cpp_obj_query_interface(handler, elk_component_handler_extension_iid, &ext) == V3_OK &&
+                                                                            ext != nullptr) {
+            handlerExt = ext;
+            if (ensureElkExt() != nullptr)
+                elkExtPtr->handlerExt.store(handlerExt, std::memory_order_release);
+        }
+    }
 
     static v3_result V3_API query_interface_controller(void* self, const v3_tuid iid, void** iface) {
         wrap_controller* const c = *static_cast<wrap_controller**>(self);
@@ -388,6 +569,18 @@ struct wrap_controller : v3_edit_controller_cpp {
                                                 v3_tuid_match(iid, v3_edit_controller_iid)) {
             ++c->refcounter;
             *iface = self;
+
+            return V3_OK;
+        }
+
+        if (v3_tuid_match(iid, elk_controller_extension_iid)) {
+            if (c->ensureElkExt() == nullptr) {
+                *iface = nullptr;
+
+                return V3_NO_INTERFACE;
+            }
+            ++c->elkExtPtr->refcounter;
+            *iface = &c->elkExtPtr;
 
             return V3_OK;
         }
@@ -520,7 +713,11 @@ struct wrap_controller : v3_edit_controller_cpp {
         return V3_OK;
     }
 
-    static v3_result V3_API set_component_handler(void*, v3_component_handler**) { return V3_OK; }
+    static v3_result V3_API set_component_handler(void* self, v3_component_handler** handler) {
+        (*static_cast<wrap_controller**>(self))->setHandler(handler);
+
+        return V3_OK;
+    }
 
     static v3_plugin_view** V3_API create_view(void* self, const char*) {
 #ifndef HEADLESS

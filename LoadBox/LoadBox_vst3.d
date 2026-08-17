@@ -8,8 +8,8 @@ LoadBoxVST3.so: vst3/LoadBoxVST3.cpp plugdef/PluginClient.cc \
  engine/ParallelThread.h engine/gx_resampler.h \
  zita-resampler-1.1.0/zita-resampler/resampler.h \
  zita-resampler-1.1.0/zita-resampler/resampler-table.h \
- wrapper/Parameter.h gui/LoadBox.c plugdef/plug.h gui/widgets.h \
- ../libxputty/libxputty/include/xwidgets.h \
+ wrapper/Parameter.h wrapper/PluginAPI.h gui/LoadBox.c plugdef/plug.h \
+ gui/widgets.h ../libxputty/libxputty/include/xwidgets.h \
  ../libxputty/libxputty/include/xbutton.h \
  ../libxputty/libxputty/include/xputty.h /usr/include/cairo/cairo.h \
  /usr/include/cairo/cairo-version.h /usr/include/cairo/cairo-features.h \
@@ -64,10 +64,9 @@ LoadBoxVST3.so: vst3/LoadBoxVST3.cpp plugdef/PluginClient.cc \
  ../libxputty/libxputty/include/xfile-dialog.h \
  ../libxputty/libxputty/include/xdgmime.h \
  ../libxputty/libxputty/include/xfilepicker.h gui/widgets.cc \
- wrapper/PluginAPI.h wrapper/vst3/travesty/base.h \
- wrapper/vst3/VST3Wrapper.cpp wrapper/vst3/travesty/factory.h \
- wrapper/vst3/travesty/view.h wrapper/vst3/travesty/component.h \
- wrapper/vst3/travesty/bstream.h wrapper/vst3/travesty/align_push.h \
- wrapper/vst3/travesty/align_pop.h \
+ wrapper/vst3/travesty/base.h wrapper/vst3/VST3Wrapper.cpp \
+ wrapper/vst3/travesty/factory.h wrapper/vst3/travesty/view.h \
+ wrapper/vst3/travesty/component.h wrapper/vst3/travesty/bstream.h \
+ wrapper/vst3/travesty/align_push.h wrapper/vst3/travesty/align_pop.h \
  wrapper/vst3/travesty/audio_processor.h wrapper/vst3/travesty/events.h \
- wrapper/vst3/travesty/edit_controller.h
+ wrapper/vst3/travesty/edit_controller.h wrapper/vst3/elk_extensions.h

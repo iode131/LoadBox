@@ -60,6 +60,25 @@ public:
     void readState(const std::string& state) override { irLoader.readState(state); }
     void saveState(std::string* state) override { irLoader.saveState(state); }
 
+    // string properties: the IR/NAM file name per channel
+    int stringPropertyCount() const override { return irLoader.stringPropertyCount(); }
+
+    bool stringPropertyInfo(int index, StringPropertyInfo& info) const override {
+        return irLoader.stringPropertyInfo(index, info);
+    }
+
+    bool getStringProperty(uint32_t id, std::string& value) const override {
+        return irLoader.getStringProperty(id, value);
+    }
+
+    bool setStringProperty(uint32_t id, const std::string& value) override {
+        return irLoader.setStringProperty(id, value);
+    }
+
+    void setStringPropertyListener(IStringPropertyListener* listener) override {
+        irLoader.setStringPropertyListener(listener);
+    }
+
 #ifndef HEADLESS
     void startGui() override { irLoader.startGui(); }
 

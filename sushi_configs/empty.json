@@ -20,7 +20,7 @@
       ],
       "plugins": [
         {
-          "path": "/home/max/Work/LoadBox/bin/LoadBoxVST3Headless.vst3",
+          "path": "/home/max/Work/loadbox/bin/LoadBoxVST3Headless.vst3",
           "name": "LoadBoxVST3Headless",
           "type": "vst3x",
           "uid": "LoadBox"
