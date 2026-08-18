@@ -20,7 +20,12 @@
       ],
       "plugins": [
         {
-          "path": "/home/max/Work/loadbox/bin/LoadBoxVST3Headless.vst3",
+          "name": "Wave",
+          "type": "internal",
+          "uid": "sushi.testing.wav_streamer"
+        },
+        {
+          "path": "/home/max/Work/LoadBox/bin/LoadBoxVST3Headless.vst3",
           "name": "LoadBoxVST3Headless",
           "type": "vst3x",
           "uid": "LoadBox"
@@ -35,5 +40,18 @@
   ],
   "midi": {
     "cc_mappings": []
-  }
+  },
+  "initial_state": [
+    {
+      "processor": "Wave",
+      "parameters": {
+        "volume": 0.8,
+        "loop": 1.0,
+        "playing": 1.0
+      },
+      "properties": {
+        "file": "/home/max/Work/elk-stomp-devkit/wavfiles/elG_07.wav"
+      }
+    }
+  ]
 }
