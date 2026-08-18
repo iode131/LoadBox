@@ -1,4 +1,4 @@
-LoadBoxVST3.so: vst3/LoadBoxVST3.cpp plugdef/PluginClient.cc \
+LoadBoxVST3Headless.so: vst3/LoadBoxVST3.cpp plugdef/PluginClient.cc \
  plugdef/LoadBox.cc engine/engine.h engine/dcblocker.cc engine/cdelay.cc \
  engine/NeuralModelLoader.h ../NeuralAudio/NeuralAudio/NeuralModel.h \
  ../NeuralAudio/deps/NeuralAmpModelerCore/Dependencies/nlohmann/json.hpp \
@@ -8,65 +8,10 @@ LoadBoxVST3.so: vst3/LoadBoxVST3.cpp plugdef/PluginClient.cc \
  engine/ParallelThread.h engine/gx_resampler.h \
  zita-resampler-1.1.0/zita-resampler/resampler.h \
  zita-resampler-1.1.0/zita-resampler/resampler-table.h \
- wrapper/Parameter.h wrapper/PluginAPI.h gui/LoadBox.c plugdef/plug.h \
- gui/widgets.h ../libxputty/libxputty/include/xwidgets.h \
- ../libxputty/libxputty/include/xbutton.h \
- ../libxputty/libxputty/include/xputty.h /usr/include/cairo/cairo.h \
- /usr/include/cairo/cairo-version.h /usr/include/cairo/cairo-features.h \
- /usr/include/cairo/cairo-deprecated.h \
- ../libxputty/libxputty/include/xputty-mswin.h \
- /usr/include/cairo/cairo-xlib.h /usr/include/cairo/cairo.h \
- ../libxputty/libxputty/include/xresourcemacros.h \
- ../libxputty/libxputty/include/config.h \
- ../libxputty/libxputty/include/xwidget.h \
- ../libxputty/libxputty/include/xwidget-platform.h \
- ../libxputty/libxputty/include/xadjustment.h \
- ../libxputty/libxputty/include/xchildlist.h \
- ../libxputty/libxputty/include/xcolor.h \
- ../libxputty/libxputty/include/xpngloader.h \
- ../libxputty/libxputty/include/xftloader.h /usr/include/cairo/cairo-ft.h \
- /usr/include/freetype2/ft2build.h \
- /usr/include/freetype2/freetype/config/ftheader.h \
- /usr/include/freetype2/freetype/freetype.h \
- /usr/include/freetype2/freetype/config/ftconfig.h \
- /usr/include/freetype2/freetype/config/ftoption.h \
- /usr/include/freetype2/freetype/config/ftstdlib.h \
- /usr/include/freetype2/freetype/config/integer-types.h \
- /usr/include/freetype2/freetype/config/public-macros.h \
- /usr/include/freetype2/freetype/config/mac-support.h \
- /usr/include/freetype2/freetype/fttypes.h \
- /usr/include/freetype2/freetype/ftsystem.h \
- /usr/include/freetype2/freetype/ftimage.h \
- /usr/include/freetype2/freetype/fterrors.h \
- /usr/include/freetype2/freetype/ftmoderr.h \
- /usr/include/freetype2/freetype/fterrdef.h \
- ../libxputty/libxputty/include/xsvgloader.h \
- ../libxputty/libxputty/include/xresources.h \
- ../libxputty/libxputty/include/xslider.h \
- ../libxputty/libxputty/include/xknob.h \
- ../libxputty/libxputty/include/xmenu.h \
- ../libxputty/libxputty/include/xcombobox.h \
- ../libxputty/libxputty/include/xasprintf.h \
- ../libxputty/libxputty/include/xtooltip.h \
- ../libxputty/libxputty/include/xmeter.h \
- ../libxputty/libxputty/include/xlabel.h \
- ../libxputty/libxputty/include/xframe.h \
- ../libxputty/libxputty/include/xlistbox.h \
- ../libxputty/libxputty/include/xlistview.h \
- ../libxputty/libxputty/include/xmultilistview.h \
- ../libxputty/libxputty/include/xplayhead.h \
- ../libxputty/libxputty/include/xtuner.h \
- ../libxputty/libxputty/include/xvaluedisplay.h \
- ../libxputty/libxputty/include/xwaveview.h \
- ../libxputty/libxputty/include/xtabbox.h \
- ../libxputty/libxputty/include/xdrawing_area.h \
- ../libxputty/libxputty/include/xkeyboard.h \
- ../libxputty/libxputty/include/xfile-dialog.h \
- ../libxputty/libxputty/include/xdgmime.h \
- ../libxputty/libxputty/include/xfilepicker.h gui/widgets.cc \
- wrapper/vst3/travesty/base.h wrapper/vst3/VST3Wrapper.cpp \
- wrapper/vst3/travesty/factory.h wrapper/vst3/travesty/view.h \
- wrapper/vst3/travesty/component.h wrapper/vst3/travesty/bstream.h \
- wrapper/vst3/travesty/align_push.h wrapper/vst3/travesty/align_pop.h \
+ wrapper/Parameter.h wrapper/PluginAPI.h wrapper/vst3/travesty/base.h \
+ wrapper/vst3/VST3Wrapper.cpp wrapper/vst3/travesty/factory.h \
+ wrapper/vst3/travesty/view.h wrapper/vst3/travesty/component.h \
+ wrapper/vst3/travesty/bstream.h wrapper/vst3/travesty/align_push.h \
+ wrapper/vst3/travesty/align_pop.h \
  wrapper/vst3/travesty/audio_processor.h wrapper/vst3/travesty/events.h \
  wrapper/vst3/travesty/edit_controller.h wrapper/vst3/elk_extensions.h
